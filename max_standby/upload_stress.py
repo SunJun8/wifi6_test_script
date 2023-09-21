@@ -18,17 +18,16 @@ delay_step = 100
 initial_delay = num_ips * delay_step   # 100ms per IP
 duration = 30   # 30 seconds
 
-# set initial delay
-delay = initial_delay
-for ip in ip_list:
-    os.system(f"python standby.py -i {ip} -p 50201 -m 0 -o 44333 -b 4 -d {duration} -l {delay}")
-    delay -= delay_step
-    time.sleep(delay_step / 1000)
-
-
 # 设置UDP服务器地址和端口
 UDP_IP = "0.0.0.0"  # 监听所有网络接口
 UDP_PORT = 44333
+
+# set initial delay
+delay = initial_delay
+for ip in ip_list:
+    os.system(f"python standby.py -i {ip} -p 50201 -m 0 -o {UDP_PORT} -b 4 -d {duration} -l {delay}")
+    delay -= delay_step
+    time.sleep(delay_step / 1000)
 
 # 创建UDP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
