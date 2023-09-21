@@ -4,15 +4,39 @@ import getopt
 import sys
 
 
-def send_command(module_ip, module_port, cmd_type, cmd_mode, cmd_time, cmd_len, cmd_port, cmd_band):
-    print(f"Sending command to {module_ip}:{module_port} mode: {cmd_mode} time: {cmd_time} len: {cmd_len} port: {cmd_port} band: {cmd_band}")
+def send_rpc_command(
+    module_ip, module_port, cmd_type, cmd_mode, cmd_time, cmd_len, cmd_port, cmd_band
+):
+    print(
+        f"Sending command to {module_ip}:{module_port} type: {cmd_type} mode: {cmd_mode} time: {cmd_time} len: {cmd_len} port: {cmd_port} band: {cmd_band}"
+    )
 
     # 创建UDP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     # 构造命令数据包
-    header = 0xa55a
-    command = struct.pack(">HBBIBHHI", header, cmd_type, cmd_mode, cmd_time, cmd_len, cmd_port, cmd_len, cmd_band)
+    # 构造命令数据字典
+    command_data = {
+        "header": 0x5AA5,
+        "cmd_type": cmd_type,
+        "cmd_mode": cmd_mode,
+        "cmd_time": cmd_time,
+        "cmd_len": cmd_len,
+        "cmd_port": cmd_port,
+        "cmd_band": cmd_band,
+    }
+
+    # 使用字典构建数据
+    command = struct.pack(
+        "<HBBIHHI",
+        command_data["header"],
+        command_data["cmd_type"],
+        command_data["cmd_mode"],
+        command_data["cmd_time"],
+        command_data["cmd_len"],
+        command_data["cmd_port"],
+        command_data["cmd_band"],
+    )
 
     try:
         # 发送命令到模组
@@ -36,9 +60,15 @@ def main(argv):
     cmd_band = 1  # 0: not, set: bandwidth in Mbits/sec
 
     try:
-        opts, args = getopt.getopt(argv, "i:p:t:m:d:l:o:b:", ["ip=", "port=", "type=", "mode=", "time=", "len=", "port=", "band="])
+        opts, args = getopt.getopt(
+            argv,
+            "i:p:t:m:d:l:o:b:",
+            ["ip=", "port=", "type=", "mode=", "time=", "len=", "port=", "band="],
+        )
     except getopt.GetoptError:
-        print("Usage: send_command.py -i <module_ip> -p <module_port> -t <cmd_type> -m <cmd_mode> -d <cmd_time> -l <cmd_len> -o <cmd_port> -b <cmd_band>")
+        print(
+            "Usage: python standby.py -i <module_ip> -p <module_port> -t <cmd_type> -m <cmd_mode> -d <cmd_time> -l <cmd_len> -o <cmd_port> -b <cmd_band>"
+        )
         sys.exit(2)
 
     for opt, arg in opts:
@@ -63,9 +93,17 @@ def main(argv):
         print("Invalid command line options.")
         sys.exit(2)
 
-
     # 调用发送命令函数
-    send_command(module_ip, module_port, cmd_type, cmd_mode, cmd_time, cmd_len, cmd_port, cmd_band)
+    send_rpc_command(
+        module_ip,
+        module_port,
+        cmd_type,
+        cmd_mode,
+        cmd_time,
+        cmd_len,
+        cmd_port,
+        cmd_band,
+    )
 
 
 if __name__ == "__main__":

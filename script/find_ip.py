@@ -19,22 +19,24 @@ def connect_wifi(port_name, ssid, passwd):
         print(f"打开串口 {port_name} 成功")
 
         # 发送重启指令
-        ser.write(b'reboot\n')
+        ser.write(b"reboot\n")
         # ser.setRTS(False)
 
         # 等待重启完成
         time.sleep(1)
 
         # 打开自动重连
-        ser.write(b'wifi_sta_autoconnect_enable\n')
+        ser.write(b"wifi_sta_autoconnect_enable\n")
 
         time.sleep(0.1)
 
         # 发送字符串并读取数据
         if passwd == "":
-            ser.write(b'wifi_sta_connect ' + ssid.encode() + b'\n')
+            ser.write(b"wifi_sta_connect " + ssid.encode() + b"\n")
         else:
-            ser.write(b'wifi_sta_connect ' + ssid.encode() + b' ' + passwd.encode() + b'\n')
+            ser.write(
+                b"wifi_sta_connect " + ssid.encode() + b" " + passwd.encode() + b"\n"
+            )
 
         # 关闭串口
         ser.close()
@@ -47,11 +49,13 @@ def connect_wifi(port_name, ssid, passwd):
 def get_ip_address(ifname):
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        ip_address = socket.inet_ntoa(fcntl.ioctl(
-            sock.fileno(),
-            0x8915,  # SIOCGIFADDR
-            struct.pack('256s', ifname[:15].encode('utf-8'))
-        )[20:24])
+        ip_address = socket.inet_ntoa(
+            fcntl.ioctl(
+                sock.fileno(),
+                0x8915,  # SIOCGIFADDR
+                struct.pack("256s", ifname[:15].encode("utf-8")),
+            )[20:24]
+        )
         return ip_address
     except Exception as e:
         print("获取IP地址失败:", e)
@@ -65,11 +69,11 @@ def read_ip_from_serial(port_name):
         print(f"打开串口 {port_name} 成功")
 
         # 发送字符串并读取数据
-        ser.write(b'wifi_sta_info\n')
-        response = ser.read(500).decode('utf-8')
+        ser.write(b"wifi_sta_info\n")
+        response = ser.read(500).decode("utf-8")
 
         # 使用正则表达式匹配IP地址
-        ip_regex = r'IP\s+:\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+        ip_regex = r"IP\s+:\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
         ip_addresses = re.findall(ip_regex, response)
 
         # 关闭串口
@@ -89,11 +93,11 @@ def read_tsf_from_serial(port_name):
         print(f"打开串口 {port_name} 成功")
 
         # 发送字符串并读取数据
-        ser.write(b'get_tsf\n')
-        response = ser.read(500).decode('utf-8')
+        ser.write(b"get_tsf\n")
+        response = ser.read(500).decode("utf-8")
 
         # 使用正则表达式匹配数字
-        match = re.search(r'TSF is (\d+\.\d+) s', response)
+        match = re.search(r"TSF is (\d+\.\d+) s", response)
 
         if match:
             tsf_value = float(match.group(1))
@@ -114,9 +118,7 @@ def read_tsf_from_serial(port_name):
 async def send_to_multiple_ips(ip_addresses, port, message):
     loop = asyncio.get_running_loop()
     transport, _ = await loop.create_datagram_endpoint(
-        lambda: asyncio.DatagramProtocol(),
-        remote_addr=None,
-        family=socket.AF_INET
+        lambda: asyncio.DatagramProtocol(), remote_addr=None, family=socket.AF_INET
     )
 
     try:
@@ -219,9 +221,21 @@ if __name__ == "__main__":
     target_port = 5010
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "n:c:s:k:p:", ["num_ports=", "num_cycles=", "target_ssid=", "target_passwd=", "target_port="])
+        opts, args = getopt.getopt(
+            sys.argv[1:],
+            "n:c:s:k:p:",
+            [
+                "num_ports=",
+                "num_cycles=",
+                "target_ssid=",
+                "target_passwd=",
+                "target_port=",
+            ],
+        )
     except getopt.GetoptError:
-        print("Usage: python script.py -n <num_ports> -c <num_cycles> -s <target_ssid> -k <target_passwd> -p <target_port>")
+        print(
+            "Usage: python script.py -n <num_ports> -c <num_cycles> -s <target_ssid> -k <target_passwd> -p <target_port>"
+        )
         sys.exit(2)
 
     for opt, arg in opts:
@@ -237,7 +251,9 @@ if __name__ == "__main__":
             target_port = int(arg)
 
     if num_ports <= 0 or num_cycles <= 0:
-        print("Invalid arguments. Usage: python script.py -n <num_ports> -c <num_cycles> -s <target_ssid>")
+        print(
+            "Invalid arguments. Usage: python script.py -n <num_ports> -c <num_cycles> -s <target_ssid>"
+        )
         sys.exit(2)
 
     main(num_ports, num_cycles, target_ssid, target_passwd, target_port)
