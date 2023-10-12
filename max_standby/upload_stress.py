@@ -15,8 +15,8 @@ with open("ip.toml", "r") as f:
 # calculate initial delay based on number of IPs in ip_list
 num_ips = len(ip_list)
 delay_step = 100
-initial_delay = num_ips * delay_step   # 100ms per IP
-duration = 30   # 30 seconds
+initial_delay = num_ips * delay_step  # 100ms per IP
+duration = 10  # 30 seconds
 
 # 设置UDP服务器地址和端口
 UDP_IP = "0.0.0.0"  # 监听所有网络接口
@@ -25,7 +25,9 @@ UDP_PORT = 44333
 # set initial delay
 delay = initial_delay
 for ip in ip_list:
-    os.system(f"python standby.py -i {ip} -p 50201 -m 0 -o {UDP_PORT} -b 4 -d {duration} -l {delay}")
+    os.system(
+        f"python standby.py -i {ip} -p 50201 -m 0 -o {UDP_PORT} -b 10 -d {duration} -l {delay}"
+    )
     delay -= delay_step
     time.sleep(delay_step / 1000)
 
@@ -46,10 +48,17 @@ start_time = time.time()
 current_time = start_time
 tick = start_time
 
+will_exit = False
+
 while True:
     try:
         # 接收UDP数据包
-        data, addr = sock.recvfrom(1472)
+        sock.settimeout(1)  # 设置1秒超时
+        try:
+            data, addr = sock.recvfrom(1472)
+        except socket.timeout:
+            will_exit = True
+
         # 获取源IP地址
         source_ip = addr[0]
         # 计算接收的字节数
@@ -65,17 +74,28 @@ while True:
         total_bytes_received += received_bytes
         final_bytes_received += received_bytes
 
+        # 更新当前时间
+        current_time = time.time()
+
         # 计算时间差，以秒为单位
         elapsed_time = current_time - start_time
+
+        # 校准时间差，以秒为单位
+        if will_exit:
+            elapsed_time = elapsed_time - 1
 
         # 每隔一秒记录数据到DataFrame
         if elapsed_time >= 1:
             # 计算总带宽
-            total_bandwidth_mbps = (total_bytes_received * 8) / (elapsed_time * 1000000)  # Mbps
-            print(f"Received bandwidth: {total_bandwidth_mbps:.2f} Mbps {time.time() - tick:.2f} s")
+            total_bandwidth_mbps = (total_bytes_received * 8) / (
+                elapsed_time * 1000000
+            )  # Mbps
+            print(
+                f"Received bandwidth: {total_bandwidth_mbps:.2f} Mbps {time.time() - tick:.2f} s"
+            )
 
             # 记录时间
-            new_row = {"Time (s)": elapsed_time}
+            new_row = {"Time (s)": (current_time - tick) // 1}
 
             # 记录每个源IP的带宽
             for ip, bytes_received in source_ip_data.items():
@@ -91,19 +111,23 @@ while True:
             start_time = current_time
             total_bytes_received = 0
 
-        # 更新当前时间
-        current_time = time.time()
+        if will_exit:
+            print("Will exit")
+            break
 
     except KeyboardInterrupt:
-        # 捕获Ctrl+C，停止服务器并退出
-        print("Server stopped.")
-
-        # 计算最终总带宽
-        final_elapsed_time = duration
-        final_total_bandwidth_mbps = (final_bytes_received * 8) / (final_elapsed_time * 1000000)  # Mbps
-        print(f"Final bandwidth: {final_total_bandwidth_mbps:.2f} Mbps")
-
-        df.to_csv("bandwidth_data.csv", index=False)  # 保存数据到CSV文件
-
-        sock.close()
+        print("Keyboard interrupt")
         break
+
+# 捕获Ctrl+C，停止服务器并退出
+print("Server stopped.")
+
+# 计算最终总带宽 Mbps
+final_elapsed_time = duration
+final_total_bandwidth_mbps = (final_bytes_received * 8) / (final_elapsed_time * 1000000)
+print(f"Final bandwidth: {final_total_bandwidth_mbps:.2f} Mbps")
+
+# 保存数据到CSV文件
+df.to_csv("bandwidth_data.csv", index=False)
+
+sock.close()
