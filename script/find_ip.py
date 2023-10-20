@@ -28,7 +28,7 @@ def connect_wifi(port_name, ssid, passwd):
         # 打开自动重连
         ser.write(b"wifi_sta_autoconnect_enable\n")
 
-        time.sleep(0.1)
+        time.sleep(0.2)
 
         # 发送字符串并读取数据
         if passwd == "":
@@ -65,7 +65,7 @@ def get_ip_address(ifname):
 def read_ip_from_serial(port_name):
     try:
         # 打开串口
-        ser = serial.Serial(port_name, baudrate=2000000, timeout=1)
+        ser = serial.Serial(port_name, baudrate=2000000, timeout=0.5)
         print(f"打开串口 {port_name} 成功")
 
         # 发送字符串并读取数据
@@ -172,6 +172,11 @@ def main(num_ports, num_cycles, target_ssid, target_passwd, remote_port):
         print("开始读取IP地址...")
         for port in serial_ports:
             ips = read_ip_from_serial(port)
+            # 若读取ip不是192.168开头，则重新读取
+            if ips[0].startswith("192.168"):
+                print("读取到IP地址:", ips)
+                ips = read_ip_from_serial(port)
+
             all_ips.extend(ips)
 
         print("匹配到的所有IP地址:", all_ips)
@@ -182,7 +187,7 @@ def main(num_ports, num_cycles, target_ssid, target_passwd, remote_port):
 
     time.sleep(2)
 
-    exit()
+    # exit()
 
     all_tsf_values = []  # 用于存储所有测试的 TSF 值
 
